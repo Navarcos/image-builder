@@ -1,0 +1,8 @@
+{
+    "kubernetes_series": "v1.28",
+    "kubernetes_semver": "v1.28.5",
+    "kubernetes_deb_version": "1.28.5-1.1",
+    "load_additional_components": "true",
+    "additional_registry_images": "true",
+    "additional_registry_images_list": "\"docker.io/calico/apiserver:v3.25.1,docker.io/calico/cni:v3.25.1,docker.io/calico/csi:v3.25.1,docker.io/calico/kube-controllers:v3.25.1,docker.io/calico/node-driver-registrar:v3.25.1,docker.io/calico/node:v3.25.1,docker.io/calico/pod2daemon-flexvol:v3.25.1,docker.io/calico/typha:v3.25.1,docker.io/library/busybox:1.36.0,gcr.io/cloud-provider-vsphere/cpi/release/manager:v1.26.0,gcr.io/cloud-provider-vsphere/csi/release/driver:v3.0.1,gcr.io/cloud-provider-vsphere/csi/release/syncer:v3.0.1,ghcr.io/kube-vip/kube-vip:v0.5.5,k8s.gcr.io/sig-storage/csi-attacher:v4.2.0,k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.7.0,k8s.gcr.io/sig-storage/csi-provisioner:v3.4.0,k8s.gcr.io/sig-storage/csi-resizer:v1.7.0,k8s.gcr.io/sig-storage/csi-snapshotter:v6.2.1,k8s.gcr.io/sig-storage/livenessprobe:v2.9.0,quay.io/tigera/operator:v1.29.3\""
+}
