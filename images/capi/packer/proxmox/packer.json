@@ -13,6 +13,7 @@
       "disks": [
         {
           "disk_size": "{{user `disk_size`}}",
+          "format": "qcow2",
           "storage_pool": "{{user `storage_pool`}}",
           "storage_pool_type": "{{user `storage_pool_type`}}",
           "type": "scsi"
@@ -21,6 +22,7 @@
       "http_directory": "{{user `http_directory`}}",
       "insecure_skip_tls_verify": true,
       "iso_checksum": "{{user `iso_checksum_type`}}:{{user `iso_checksum`}}",
+      "iso_file": "{{user `iso_file`}}",
       "iso_storage_pool": "{{user `iso_storage_pool`}}",
       "iso_url": "{{user `iso_url`}}",
       "memory": "{{user `memory`}}",
@@ -146,6 +148,14 @@
         "kubernetes_version": "{{user `kubernetes_semver` | replace \"v\" \"\" 1}}"
       },
       "version": "{{user `goss_version`}}"
+    },
+    {
+      "expect_disconnect": true,
+      "inline": [
+        "echo '{{user `ssh_password`}}' | sudo -S -E sh -c 'usermod -L {{user `ssh_username`}} && shutdown'"
+      ],
+      "inline_shebang": "/bin/bash -e",
+      "type": "shell"
     }
   ],
   "variables": {
@@ -190,7 +200,7 @@
     "node": "{{env `PROXMOX_NODE`}}",
     "proxmox_url": "{{env `PROXMOX_URL`}}",
     "sockets": "2",
-    "ssh_password": "builder",
+    "ssh_password": "{{ uuid }}",
     "ssh_username": "builder",
     "storage_pool": "{{env `PROXMOX_STORAGE_POOL`}}",
     "storage_pool_type": "lvm",
