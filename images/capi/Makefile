@@ -190,6 +190,12 @@ deps-vultr: deps-common
 	$(PACKER) init packer/config.pkr.hcl
 	$(PACKER) init packer/vultr/config.pkr.hcl
 
+.PHONY: deps-scaleway
+deps-scaleway: ## Installs/checks dependencies for Scaleway builds
+deps-scaleway: deps-common
+	$(PACKER) init packer/config.pkr.hcl
+	$(PACKER) init packer/scaleway/config.pkr.hcl
+
 ## --------------------------------------
 ## Packer Configuration
 ## --------------------------------------
@@ -366,7 +372,7 @@ NODE_OVA_VSPHERE_CLONE_BUILD_NAMES		:=	$(addprefix node-ova-vsphere-clone-,$(PLA
 
 AMI_BUILD_NAMES			   ?= ami-centos-7 ami-ubuntu-2004 ami-ubuntu-2204 ami-ubuntu-2404 ami-amazon-2 ami-amazon-2023 ami-flatcar ami-flatcar-arm64 ami-windows-2019 ami-rockylinux-8 ami-rhel-8
 HUAWEICLOUD_BUILD_NAMES ?= huaweicloud-ubuntu-2204
-GCE_BUILD_NAMES			   ?= gce-ubuntu-2004 gce-ubuntu-2204 gce-ubuntu-2404 gce-rhel-8
+GCE_BUILD_NAMES			   ?= gce-ubuntu-2204 gce-ubuntu-2404 gce-rhel-8
 
 # Make needs these lists to be space delimited, no quotes
 VHD_TARGETS := $(shell grep VHD_TARGETS azure_targets.sh | sed 's/VHD_TARGETS=//' | tr -d \")
@@ -401,6 +407,10 @@ HCLOUD_BUILD_NAMES ?= hcloud-ubuntu-2004 hcloud-ubuntu-2204 hcloud-ubuntu-2404 h
 PROXMOX_BUILD_NAMES 		?= proxmox-ubuntu-2204 proxmox-ubuntu-2404 proxmox-ubuntu-2404-efi proxmox-rockylinux-9 proxmox-flatcar
 
 VULTR_BUILD_NAMES 				?=	vultr-ubuntu-2204
+
+MAAS_BUILD_NAMES 			?= maas-ubuntu-2204-efi maas-ubuntu-2404-efi
+
+SCALEWAY_BUILD_NAMES 				?=	scaleway-rockylinux-9 scaleway-ubuntu-2204 scaleway-ubuntu-2404
 
 ## --------------------------------------
 ## Dynamic build targets
@@ -450,6 +460,10 @@ PROXMOX_BUILD_TARGETS		:= $(addprefix build-,$(PROXMOX_BUILD_NAMES))
 PROXMOX_VALIDATE_TARGETS	:= $(addprefix validate-,$(PROXMOX_BUILD_NAMES))
 VULTR_BUILD_TARGETS 	:= $(addprefix build-,$(VULTR_BUILD_NAMES))
 VULTR_VALIDATE_TARGETS 	:= $(addprefix validate-,$(VULTR_BUILD_NAMES))
+MAAS_BUILD_TARGETS 	:= $(addprefix build-,$(MAAS_BUILD_NAMES))
+MAAS_VALIDATE_TARGETS 	:= $(addprefix validate-,$(MAAS_BUILD_NAMES))
+SCALEWAY_BUILD_TARGETS		:= $(addprefix build-,$(SCALEWAY_BUILD_NAMES))
+SCALEWAY_VALIDATE_TARGETS	:= $(addprefix validate-,$(SCALEWAY_BUILD_NAMES))
 
 .PHONY: $(NODE_OVA_LOCAL_BUILD_TARGETS)
 $(NODE_OVA_LOCAL_BUILD_TARGETS): deps-ova set-ssh-password
@@ -642,6 +656,22 @@ $(VULTR_BUILD_TARGETS): deps-vultr
 $(VULTR_VALIDATE_TARGETS): deps-vultr
 	$(PACKER) validate $(PACKER_NODE_FLAGS) -var-file="$(abspath packer/vultr/$(subst validate-vultr-,,$@).json)" $(ABSOLUTE_PACKER_VAR_FILES) packer/vultr/packer.json
 
+.PHONY: $(MAAS_BUILD_TARGETS)
+$(MAAS_BUILD_TARGETS): deps-qemu set-ssh-password
+	$(PACKER) build $(PACKER_NODE_FLAGS) -var-file="$(abspath packer/maas/$(subst build-,,$@).json)" --var="ansible_user_vars=provider=maas" $(ABSOLUTE_PACKER_VAR_FILES) packer/maas/packer.json
+
+.PHONY: $(MAAS_VALIDATE_TARGETS)
+$(MAAS_VALIDATE_TARGETS): deps-qemu set-ssh-password
+	$(PACKER) validate $(PACKER_NODE_FLAGS) -var-file="$(abspath packer/maas/$(subst validate-,,$@).json)" --var="ansible_user_vars=provider=maas" $(ABSOLUTE_PACKER_VAR_FILES) packer/maas/packer.json
+
+.PHONY: $(SCALEWAY_BUILD_TARGETS)
+$(SCALEWAY_BUILD_TARGETS): deps-scaleway
+	$(PACKER) build $(PACKER_NODE_FLAGS) -var-file="$(abspath packer/scaleway/$(subst build-scaleway-,,$@).json)" $(ABSOLUTE_PACKER_VAR_FILES) packer/scaleway/packer.json
+
+.PHONY: $(SCALEWAY_VALIDATE_TARGETS)
+$(SCALEWAY_VALIDATE_TARGETS): deps-scaleway
+	$(PACKER) validate $(PACKER_NODE_FLAGS) -var-file="$(abspath packer/scaleway/$(subst validate-scaleway-,,$@).json)" $(ABSOLUTE_PACKER_VAR_FILES) packer/scaleway/packer.json
+
 ## --------------------------------------
 ## Dynamic clean targets
 ## --------------------------------------
@@ -726,7 +756,6 @@ build-do-ubuntu-2404: ## Builds Ubuntu 24.04 DigitalOcean Snapshot
 build-do-centos-7: ## Builds Centos 7 DigitalOcean Snapshot
 build-do-all: $(DO_BUILD_TARGETS) ## Builds all DigitalOcean Snapshot
 
-build-gce-ubuntu-2004: ## Builds the GCE ubuntu-2004 image
 build-gce-ubuntu-2204: ## Builds the GCE ubuntu-2204 image
 build-gce-ubuntu-2404: ## Builds the GCE ubuntu-2404 image
 build-gce-rhel-8: ## Builds the GCE rhel-8 image
@@ -851,6 +880,9 @@ build-qemu-rockylinux-9: ## Builds Rocky 9 QEMU image
 build-qemu-rockylinux-9-cloudimg: ## Builds Rocky 9 QEMU image using cloud image
 build-qemu-all: $(QEMU_BUILD_TARGETS) ## Builds all Qemu images
 
+build-maas-ubuntu-2204-efi: ## Builds Ubuntu 22.04 MaaS image that EFI boots
+build-maas-ubuntu-2404-efi: ## Builds Ubuntu 24.04 MaaS image that EFI boots
+
 build-raw-flatcar: ## Builds Flatcar RAW image
 build-raw-ubuntu-2004: ## Builds Ubuntu 20.04 RAW image
 build-raw-ubuntu-2004-efi: ## Builds Ubuntu 20.04 RAW image that EFI boots
@@ -903,6 +935,11 @@ build-proxmox-ubuntu-2404-efi: ## Builds the Proxmox ubuntu-2404-efi image that 
 build-proxmox-rockylinux-9: ## Builds the Proxmox rockylinux-9 image
 
 build-vultr-ubuntu-2204: ## Builds Ubuntu 22.04 Vultr Snapshot
+
+build-scaleway-rockylinux-9: ## Builds the Scaleway rockylinux-9 image
+build-scaleway-ubuntu-2204: ## Builds Ubuntu 22.04 Scaleway image
+build-scaleway-ubuntu-2404: ## Builds Ubuntu 24.04 Scaleway image
+build-scaleway-all: $(SCALEWAY_BUILD_TARGETS) ## Builds all Scaleway Cloud images
 
 ## --------------------------------------
 ## Document dynamic validate targets
@@ -974,7 +1011,6 @@ validate-openstack-rocky-9: ## Validates Rocky 9 Openstack Image Packer config
 validate-openstack-flatcar: ## Validates Flatcar Openstack Image Packer config
 validate-openstack-all: $(OPENSTACK_VALIDATE_TARGETS) ## Validates all Openstack Glance Image Packer config
 
-validate-gce-ubuntu-2004: ## Validates Ubuntu 20.04 GCE Snapshot Packer config
 validate-gce-ubuntu-2204: ## Validates Ubuntu 22.04 GCE Snapshot Packer config
 validate-gce-ubuntu-2404: ## Validates Ubuntu 24.04 GCE Snapshot Packer config
 validate-gce-rhel-8: ## Validates RHEL 8 GCE Snapshot Packer config
@@ -1093,6 +1129,11 @@ validate-proxmox-flatcar: ## Validates Flatcar Proxmox Packer config
 
 validate-vultr-ubuntu-2204: ## Validates Ubuntu 22.04 Vultr Snapshot Packer config
 
+validate-scaleway-rockylinux-9: ## Validates Rocky Linux 9 Scaleway image Packer config
+validate-scaleway-ubuntu-2204: ## Validates Ubuntu 22.04 Scaleway image Packer config
+validate-scaleway-ubuntu-2404: ## Validates Ubuntu 24.04 Scaleway image Packer config
+validate-scaleway-all: $(SCALEWAY_VALIDATE_TARGETS) ## Validates all Scaleway Cloud Packer config
+
 validate-all: validate-ami-all \
 	validate-azure-all \
 	validate-do-all \
@@ -1104,7 +1145,8 @@ validate-all: validate-ami-all \
 	validate-osc-all \
 	validate-powervs-all \
 	validate-nutanix-all \
-	validate-hcloud-all
+	validate-hcloud-all \
+	validate-scaleway-all
 
 validate-all: ## Validates the Packer config for all build targets
 
