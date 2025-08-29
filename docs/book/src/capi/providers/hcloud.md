@@ -24,11 +24,9 @@ the different operating systems.
 
 | File                 | Description                              |
 |----------------------|------------------------------------------|
-| `centos-7.json`      | The settings for the CentOS 7 image      |
 | `flatcar.json`       | The settings for the Flatcar image       |
 | `flatcar-arm64.json` | The settings for the Flatcar arm64 image |
 | `rockylinux-8.json`  | The settings for the RockyLinux 8 image  |
 | `rockylinux-9.json`  | The settings for the RockyLinux 9 image  |
-| `ubuntu-2004.json`   | The settings for the Ubuntu 20.04 image  |
 | `ubuntu-2204.json`   | The settings for the Ubuntu 22.04 image  |
 | `ubuntu-2404.json`   | The settings for the Ubuntu 24.04 image  |

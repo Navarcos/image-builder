@@ -22,7 +22,18 @@ CAPI_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${CAPI_ROOT}" || exit 1
 
 export ARTIFACTS="${ARTIFACTS:-${PWD}/_artifacts}"
-TARGETS=("ubuntu-2204" "ubuntu-2404" "rockylinux-9" "flatcar")
+# Dynamically gets all targets and filters out the following:
+# - Any RHEL targets (because of subscription requirements)
+# - Any Windows targets (because of license requirements)
+# - Any efi targets (to reduce duplicate OSs)
+# The following are currently having issues running in the
+# test environment so are specifically excluded for now
+# - Photon-4
+TARGETS=( $(make build-node-ova-vsphere-all --recon -d | grep "Must remake" | \
+  grep -v build-node-ova-vsphere-all | \
+  grep -E -v 'rhel|windows|efi' | \
+  grep -v build-node-ova-vsphere-photon-4 | \
+  grep -E -o 'build-node-ova-vsphere-[a-zA-Z0-9\-]+' ) )
 
 export BOSKOS_RESOURCE_OWNER=image-builder
 if [[ "${JOB_NAME}" != "" ]]; then
@@ -59,6 +70,32 @@ export TIMESTAMP="$(date -u '+%Y%m%dT%H%M%S')"
 export GOVC_DATACENTER="Datacenter"
 export GOVC_CLUSTER="k8s-gcve-cluster"
 export GOVC_INSECURE=true
+
+# Ensure vSphere is reachable
+function wait_for_vsphere_reachable() {
+  local n=0
+  until [ $n -ge 300 ]; do
+    curl -s -v "https://${VSPHERE_SERVER}/sdk" --connect-timeout 2 -k && RET=$? || RET=$?
+    if [[ "$RET" -eq 0 ]]; then
+      break
+    fi
+    n=$((n + 1))
+    echo "Failed to reach https://${VSPHERE_SERVER}/sdk. Retrying in 1s ($n/300)"
+    sleep 1
+  done
+  if [ "$RET" -ne 0 ]; then
+    # Output some debug information in case of failing connectivity.
+    echo "$ ip link"
+    ip link
+    echo "# installing tcptraceroute to check route"
+    apt-get update && apt-get install -y tcptraceroute
+    echo "$ tcptraceroute ${VSPHERE_SERVER} 443"
+    tcptraceroute "${VSPHERE_SERVER}" 443
+  fi
+  return "$RET"
+}
+
+wait_for_vsphere_reachable
 
 # Install xorriso which will be then used by packer to generate ISO for generating CD files
 apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso
@@ -131,12 +168,14 @@ make deps-ova
 declare -A PIDS
 for target in ${TARGETS[@]};
 do
+  target=${target#build-node-ova-vsphere-}
   export PACKER_VAR_FILES="ci-${target}.json scripts/ci-disable-goss-inspect.json"
 cat << EOF > ci-${target}.json
 {
 "build_version": "capv-ci-${target}-${TIMESTAMP}"
 }
 EOF
+  export PACKER_LOG=1
   make build-node-ova-vsphere-${target} > ${ARTIFACTS}/${target}.log 2>&1 &
   PIDS["${target}"]=$!
 done
