@@ -26,8 +26,8 @@
 - name: Download containerd
   ansible.builtin.get_url:
     url: "{{ containerd_url }}"
-    checksum: sha256:{{ containerd_sha256 }}
-    dest: /tmp/containerd.tar.gz
+    checksum: sha256:{{ containerd_url }}.sha256sum
+    dest: /tmp/{{ containerd_filename }}
     mode: "0600"
 
 - name: Download containerd.service
@@ -38,8 +38,8 @@
 
 - name: Download runc
   ansible.builtin.get_url:
-    url: "{{ runc_url }}"
-    checksum: sha256:{{ runc_sha256 }}
+    url: "{{ containerd_runc_url }}"
+    checksum: sha256:{{ containerd_runc_checksum_url }}
     dest: /tmp/runc
     mode: "0600"
 
@@ -66,7 +66,7 @@
 - name: Unpack containerd
   ansible.builtin.unarchive:
     remote_src: true
-    src: /tmp/containerd.tar.gz
+    src: /tmp/{{ containerd_filename }}
     dest: "{{ containerd_prefix | default('/usr/local') }}"
     extra_opts:
       - --no-overwrite-dir
@@ -101,7 +101,7 @@
 - name: Unpack containerd for Flatcar to /opt/bin
   ansible.builtin.unarchive:
     remote_src: true
-    src: /tmp/containerd.tar.gz
+    src: /tmp/{{ containerd_filename }}
     dest: "{{ containerd_prefix | default('/opt') }}"
   when: ansible_os_family == "Flatcar"
 
@@ -128,6 +128,7 @@
   ansible.builtin.file:
     path: /etc/systemd/system/containerd.service.d
     state: directory
+    mode: "0755"
 
 - name: Create systemd unit drop-in file for containerd to run from /opt/bin
   ansible.builtin.template:
@@ -166,11 +167,13 @@
   ansible.builtin.file:
     path: /etc/containerd
     state: directory
+    mode: "0755"
 
 - name: Creates containerd certificates directory
   ansible.builtin.file:
     path: /etc/containerd/certs.d
     state: directory
+    mode: "0755"
 
 - name: Copy in containerd config file {{ containerd_config_file }}
   vars:
@@ -184,6 +187,7 @@
   ansible.builtin.template:
     dest: /etc/crictl.yaml
     src: etc/crictl.yaml
+    mode: "0644"
 
 - name: Start containerd service
   ansible.builtin.systemd:
@@ -194,7 +198,7 @@
 
 - name: Delete containerd tarball
   ansible.builtin.file:
-    path: /tmp/containerd.tar.gz
+    path: /tmp/{{ containerd_filename }}
     state: absent
 
 - name: Delete runc bin
